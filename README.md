@@ -32,3 +32,11 @@
 赋予该用户123456权限
 
     /perm permit u123456 io.github.gdpl2112.transmitMsg.TransmitMessage:op
+
+<hr>
+
+配置项: pre 为 空时则不发送前置消息
+
+传话目标 为 -1 时 则转发全部好友
+传话目标 为 -2 时 则转发全部群聊
+传话目标 为 -3 时 则转发全部好友/群聊

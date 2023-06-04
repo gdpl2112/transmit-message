@@ -3,6 +3,7 @@ package io.github.gdpl2112.transmitMsg
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.permission.AbstractPermitteeId
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
+import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.event.EventHandler
 import net.mamoe.mirai.event.SimpleListenerHost
 import net.mamoe.mirai.event.events.FriendMessageEvent
@@ -51,22 +52,6 @@ object M1ListenerHost : SimpleListenerHost() {
         }
     }
 
-    private suspend fun send(st: SyncTransmit, bot: Bot) {
-        var f = bot.getFriend(st.target)
-        if (f != null) {
-            f.sendMessage(TransmitMessage.config.pre.replace("$1", st.qid.toString()))
-            st.data?.let { f.sendMessage(it) }
-        } else {
-            for (group in bot.groups) {
-                var m = group.get(st.target);
-                if (m != null) {
-                    m.sendMessage(TransmitMessage.config.pre.replace("$1", st.qid.toString()))
-                    st.data?.let { m.sendMessage(it) }
-                }
-            }
-        }
-    }
-
     @EventHandler
     suspend fun onFriendMessageEvent(event: FriendMessageEvent) {
         if (!AbstractPermitteeId.ExactFriend(event.sender.id).hasPermission(TransmitMessage.p0)) {
@@ -108,5 +93,55 @@ object M1ListenerHost : SimpleListenerHost() {
             }
         }
         return text.trim()
+    }
+
+    private suspend fun send(st: SyncTransmit, bot: Bot) {
+        when (st.target) {
+            -1L -> {
+                sendAllFriends(bot, st)
+            }
+
+            -2L -> {
+                sendAllGroups(bot, st)
+            }
+
+            -3L -> {
+                sendAllFriends(bot, st)
+                sendAllGroups(bot, st)
+            }
+        }
+        var f = bot.getFriend(st.target)
+        if (f != null) {
+            sendNow(f, st)
+        } else {
+            for (group in bot.groups) {
+                var m = group.get(st.target);
+                if (m != null) {
+                    sendNow(m, st)
+                }
+            }
+        }
+    }
+
+    private suspend fun sendAllGroups(bot: Bot, st: SyncTransmit) {
+        for (group in bot.groups) {
+            sendNow(group, st)
+        }
+    }
+
+    private suspend fun sendAllFriends(bot: Bot, st: SyncTransmit) {
+        for (f in bot.friends) {
+            sendNow(f, st)
+        }
+    }
+
+    private suspend fun sendNow(contact: Contact, st: SyncTransmit) {
+        if (!TransmitMessage.config.pre.trim().isEmpty()) contact.sendMessage(
+            TransmitMessage.config.pre.replace(
+                "$1",
+                st.qid.toString()
+            )
+        )
+        st.data?.let { contact.sendMessage(it) }
     }
 }
